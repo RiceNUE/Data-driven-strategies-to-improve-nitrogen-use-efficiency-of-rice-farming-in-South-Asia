@@ -108,7 +108,7 @@ pred_dashboard_0$Aggregated <- "tbc"
 
 ```
 
-1.4) Reporting sample size for each year and region (Table S6 in Supplementary Information 9)
+1.4) Reporting sample size for each year and region (Table S8 in Supplementary Information 9)
 
 ```{r}
 library(formattable)
@@ -334,7 +334,7 @@ regs[i,"mean_N_output"] <- mean(working_data$N_output)
 
 ```
 
-2.2) Analysing variation in mineral macronutrient application (Figure S2 in Supplementary Information 3)
+2.2) Analysing variation in mineral macronutrient application (Figure S3 in Supplementary Information 3)
 
 ```{r}
 library(ggplot2)
@@ -355,8 +355,10 @@ addline_format <- function(x,...){
 }
 
 ## N rate
-ggplot(nib6,aes(Region_name, N_kg_ha))+
+Nrate <- ggplot(nib6,aes(Region_name, N_kg_ha))+
   geom_boxplot(aes(fill= Region_name)) +
+  stat_summary(fun=mean, geom="point", shape=23, size=3, color="black", fill="red") +
+  # stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 1)), vjust = -0.5, size = 5, color = "black") +
   labs(y = expression("Nitrogen application rate (N kg ha"^{-1}*")"), x = "Region") +
   ylim(0,300)+ 
   theme(legend.position="none") +
@@ -369,8 +371,10 @@ ggplot(nib6,aes(Region_name, N_kg_ha))+
   theme(axis.title.x = element_text(vjust=-0.2))
 
 ## P rate
-ggplot(nib6,aes(Region_name,P2O5_ha))+
+Prate <- ggplot(nib6,aes(Region_name,P2O5_ha))+
   geom_boxplot(aes(fill=Region_name)) +
+  stat_summary(fun=mean, geom="point", shape=23, size=3, color="black", fill="red") +
+  # stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 1)), vjust = -0.5, size = 5, color = "black") +
   labs(y = expression("Phosphorus application rate (P2O5 kg ha"^{-1}*")"), x = "Region") +
   ylim(0,300)+ 
   theme(legend.position="none") +
@@ -383,8 +387,10 @@ ggplot(nib6,aes(Region_name,P2O5_ha))+
   theme(axis.title.x = element_text(vjust=-0.2))
 
 ## K rate
-ggplot(nib6,aes(Region_name,K2O_ha))+
+Krate <- ggplot(nib6,aes(Region_name,K2O_ha))+
   geom_boxplot(aes(fill=Region_name)) +
+  stat_summary(fun=mean, geom="point", shape=23, size=3, color="black", fill="red") +
+  # stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 1)), vjust = -0.5, size = 5, color = "black") +
   labs(y = expression("Potassium application rate (K2O kg ha"^{-1}*")"), x = "Region") +
   ylim(0,300)+ 
   theme(legend.position="none")  +
@@ -396,6 +402,13 @@ ggplot(nib6,aes(Region_name,K2O_ha))+
   theme(axis.title.y = element_text(vjust=2)) +
   theme(axis.title.x = element_text(vjust=-0.2))
 
+# Save figures
+setwd('[insert working directory]')
+ggsave(filename = "FigureS2a.png", plot = Nrate, width = 10, height = 6, units = "in", dpi = 700)
+ggsave(filename = "FigureS2b.png", plot = Prate, width = 10, height = 6, units = "in", dpi = 700)
+ggsave(filename = "FigureS2c.png", plot = Krate, width = 10, height = 6, units = "in", dpi = 700)
+
+
 ```
 
 2.3) Comparing nitrogen outcomes across regions (Figure 1a)
@@ -405,7 +418,7 @@ library(formattable)
 library("htmltools")
 library("webshot") 
 
-# Input monsoon rice area assumptions defined in Table S4 in supplementary information 5
+# Input monsoon rice area assumptions defined in Table S6 in supplementary information 5
 regs$Monsoon_area_ha <- NA
 
 regs[which(regs$Region == "Bihar"),"Monsoon_area_ha"] <- (30.728 * 100000) +  
@@ -690,7 +703,7 @@ export_formattable(Figure1a,"Figure1a.png")
 
 ```
 
-2.4) Comparing nitrogen outcomes across regions (Figure 1b)
+2.4) Comparing nitrogen outcomes across regions (Figure 1b and Table S1)
 
 ```{r}
 library(gridExtra)
@@ -726,7 +739,7 @@ density_plot <- ggplot(nib6[which(nib6$Region == regs[i,"Region"]),], aes(x = N_
   theme(legend.position="none",
   axis.title.x=element_blank(),
   axis.title.y=element_blank()) +
-  geom_vline(xintercept = 113) +
+  geom_vline(xintercept = 114) +
   geom_hline(yintercept = 5) +
   labs(title = regs[i,"Region_figurename2"]) +
   theme(plot.title = element_text(size=16),
@@ -736,6 +749,52 @@ density_plot <- ggplot(nib6[which(nib6$Region == regs[i,"Region"]),], aes(x = N_
   scale_y_continuous(breaks = c(0,2,4,6,8,10), limits = c(0,10), expand = c(0, 0))
 assign(paste(regs[i,"Region"], "_", "density_plot_annotated", sep = ""), density_plot)
 }
+
+# Percentage breakdown
+PercBreak <- data.frame(regs$Region)
+colnames(PercBreak)[1] <- "Region"
+PercBreak$LowInput_HighOutput <- NA
+PercBreak$HighInput_HighOutput <- NA
+PercBreak$LowInput_LowOutput <- NA
+PercBreak$HighInput_LowOutput <- NA
+
+for(i in 1:nrow(PercBreak)){
+PercBreak[i,"LowInput_HighOutput"] <- paste0(round((
+  length(which(nib6$Region == PercBreak[i,"Region"] &
+                 nib6$yield_t_ha >= 5 & nib6$N_kg_ha < 114)) /
+  length(which(nib6$Region == PercBreak[i,"Region"])) *
+    100
+),1),"%")
+}
+
+for(i in 1:nrow(PercBreak)){
+PercBreak[i,"HighInput_HighOutput"] <- paste0(round((
+  length(which(nib6$Region == PercBreak[i,"Region"] &
+                 nib6$yield_t_ha >= 5 & nib6$N_kg_ha >= 114)) /
+  length(which(nib6$Region == PercBreak[i,"Region"])) *
+    100
+),1),"%")
+}
+
+for(i in 1:nrow(PercBreak)){
+PercBreak[i,"LowInput_LowOutput"] <- paste0(round((
+  length(which(nib6$Region == PercBreak[i,"Region"] &
+                 nib6$yield_t_ha < 5 & nib6$N_kg_ha < 114)) /
+  length(which(nib6$Region == PercBreak[i,"Region"])) *
+    100
+),1),"%")
+}
+
+for(i in 1:nrow(PercBreak)){
+PercBreak[i,"HighInput_LowOutput"] <- paste0(round((
+  length(which(nib6$Region == PercBreak[i,"Region"] &
+                 nib6$yield_t_ha < 5 & nib6$N_kg_ha >= 114)) /
+  length(which(nib6$Region == PercBreak[i,"Region"])) *
+    100
+),1),"%")
+}
+
+PercBreak$Region <- regs$Region_figurename
 
 # comparison_plot_annotated_unexplained
 (Figure1b <- grid.arrange(AP_density_plot_annotated,
@@ -752,13 +811,14 @@ assign(paste(regs[i,"Region"], "_", "density_plot_annotated", sep = ""), density
              ))
 
 
-# save table
+# save table and figure
 setwd('[insert working directory]')
+write.csv(PercBreak, "TableS1.csv")
 ggsave(filename = "Figure1b.png", plot = Figure1b, width = 10, height = 6, units = "in", dpi = 400)
 
 ```
 
-2.5) Get mean and standard error for each variable in Figure 1a (Table S1 in Supplementary Information 1)
+2.5) Get mean and standard error for each variable in Figure 1a (Table S2 in Supplementary Information 1)
 
 ```{r}
 library("plotrix")
@@ -818,7 +878,7 @@ write.csv(standard_error_table_neat, paste("standard_error_table_neat__",timedat
 
 ```
 
-2.6) Testing statistical signficance of regional differences for each variable in Figure 1a (Table S2 in Supplementary Information 1)
+2.6) Testing statistical signficance of regional differences for each variable in Figure 1a (Table S3 in Supplementary Information 1)
 
 ```{r}
 library(multcomp)
@@ -874,7 +934,7 @@ write.csv(tukey_full, paste("tukey_full__",timedatenow, ".csv"))
 
 ```
 
-2.7) Clarifying sample size within different combinations of N rate and region (Table S3 in Supplementary Information 3)
+2.7) Clarifying sample size within different combinations of N rate and region (Table S4 in Supplementary Information 3)
 
 ```{r}
 # Clarifying sample size within each N rate range
@@ -930,7 +990,7 @@ timedatenow <- str_replace_all(timedatenow," ","__")
 write.csv(Sample_size_across_Nrates, paste("Sample_size_across_Nrates__",timedatenow, ".csv"))
 ```
 
-2.8) Modelling average NUE for any given nitrogen rate in each region (Figure S1 in Supplementary Information 2)
+2.8) Modelling average NUE for any given nitrogen rate in each region (Figure S2 in Supplementary Information 2)
 
 ```{r}
 library(tidyverse)
@@ -970,7 +1030,7 @@ assign(paste0("CTspline_","PFPvsN_",regs[i,"Region"]),central_tendency_spline)
 ```
 
 
-2.9) Modelling 'frontier' NUE for any given nitrogen rate in each region (Figure 2)
+2.9) Modelling 'frontier' NUE for any given nitrogen rate in each region (Figure 2 & Figure S1)
 
 
 ```{r}
@@ -1239,12 +1299,44 @@ Figure2 <- ggplot() +
         legend.text=element_text(size=19), legend.title=element_text(size=19)) +
   scale_color_manual(name="Region", values = c("Punjab & Haryana" = "blue","Andhra Pradesh" = "dark grey","Bangladesh's floodplains" = 'seagreen',"Odisha" = "orchid",  "Terai of Nepal" = 'orange', "Bihar & eastern Uttar Pradesh" = "red"))
 
+FigureS1a <- ggplot() +
+  xlim(c(50,200)) +
+  ylim(c(0,100)) +
+  theme_bw() +
+  # geom_line(data = nib_frontier_plot_data, aes(x = N.seq, y = Q75PFPn_potential_givenNrate, color = Region), linetype = 'longdash', size = 1.5) +
+  geom_line(data = nib_frontier_plot_data, aes(x = N.seq, y = CT_PFPn_potential_givenNrate, color = Region), linetype = 'solid', size = 1.5) +
+  # scale_color_manual(values = regs$colour) +
+  ggtitle("") +
+  labs(y = paste0("Nitrogen use efficiency (kg rice kg","\U207B","\U00B9"," N)"),
+       x = paste0("Nitrogen application rate (kg ha","\U207B","\U00B9",")")) +
+  guides(fill = guide_legend(byrow = TRUE)) +
+  theme(legend.position = c(0.78, 0.8), axis.text=element_text(size=14), axis.title=element_text(size=19),
+        legend.text=element_text(size=19), legend.title=element_text(size=19)) +
+  scale_color_manual(name="Region", values = c("Punjab & Haryana" = "blue","Andhra Pradesh" = "dark grey","Bangladesh's floodplains" = 'seagreen',"Odisha" = "orchid",  "Terai of Nepal" = 'orange', "Bihar & eastern Uttar Pradesh" = "red"))
+
+FigureS1b <- ggplot() +
+  xlim(c(50,200)) +
+  ylim(c(0,100)) +
+  theme_bw() +
+  geom_line(data = nib_frontier_plot_data, aes(x = N.seq, y = Q75PFPn_potential_givenNrate, color = Region), linetype = 'longdash', size = 1.5) +
+  # geom_line(data = nib_frontier_plot_data, aes(x = N.seq, y = CT_PFPn_potential_givenNrate, color = Region), linetype = 'solid', size = 1.5) +
+  # scale_color_manual(values = regs$colour) +
+  ggtitle("") +
+  labs(y = paste0("Nitrogen use efficiency (kg rice kg","\U207B","\U00B9"," N)"),
+       x = paste0("Nitrogen application rate (kg ha","\U207B","\U00B9",")")) +
+  guides(fill = guide_legend(byrow = TRUE)) +
+  theme(legend.position = c(0.78, 0.8), axis.text=element_text(size=14), axis.title=element_text(size=19),
+        legend.text=element_text(size=19), legend.title=element_text(size=19)) +
+  scale_color_manual(name="Region", values = c("Punjab & Haryana" = "blue","Andhra Pradesh" = "dark grey","Bangladesh's floodplains" = 'seagreen',"Odisha" = "orchid",  "Terai of Nepal" = 'orange', "Bihar & eastern Uttar Pradesh" = "red"))
+
 setwd('[insert working directory]')
 ggsave(filename = "Figure2.png", plot = Figure2, width = 10, height = 6, units = "in", dpi = 700)
+ggsave(filename = "FigureS1a.png", plot = FigureS1a, width = 10, height = 6, units = "in", dpi = 700)
+ggsave(filename = "FigureS1b.png", plot = FigureS1b, width = 10, height = 6, units = "in", dpi = 700)
 
 ```
 
-2.10) Figure 2 without addressing overfitting in frontier splines for Odisha and Nepal (Figure S9 in Supplementary Information 10)
+2.10) Figure 2 without addressing overfitting in frontier splines for Odisha and Nepal (Figure S10 in Supplementary Information 10)
 
 ```{r}
 library(gridExtra)
@@ -1972,7 +2064,7 @@ varImportance_end <- Sys.time()
 print(round(varImportance_end - varImportance_start),0)
 ```
 
-3.11) Isolating average relationship between nitrogen rate and yield for each region (Figure S3 in Supplementary Information 4)
+3.11) Isolating average relationship between nitrogen rate and yield for each region (Figure S4 in Supplementary Information 4)
 
 ```{r}
 library(segmented)
@@ -1989,6 +2081,8 @@ regs$N_input_breakpoint <- "tbc"
 regs$SHAP_at_breakpoint <- "tbc"
 regs$N_output_breakpoint <- "tbc"
 regs$N_surplus_breakpoint <- "tbc"
+regs$R2_linear <- NA  # Add column to store R² of the linear model
+regs$R2_segmented <- NA  # Add column to store R² of the segmented model
 
 for(i in 1:nrow(regs)){
 for(j in 1){
@@ -2014,6 +2108,19 @@ plot(segmented.mod, main = regs[i,"Region_figurename"], res = T, xlim = c(0,200)
                ifelse(residuals > 0 & x > segmented.mod$psi[2],"black",
                "black")))))
 
+# Calculate residuals
+residuals <- as.numeric(segmented.mod$residuals)
+  
+# Calculate R² for linear model
+r2_linear <- summary(lin.model)$r.squared
+  
+# Calculate R² for segmented model (pseudo R² based on deviance)
+r2_segmented <- 1 - sum(residuals^2) / sum((y - mean(y))^2)
+  
+# Store the R² values in the 'regs' dataframe
+regs[i, "R2_linear"] <- r2_linear
+regs[i, "R2_segmented"] <- r2_segmented
+
 ## Calculate N surplus at breakpint
 
 ### N rate at breakpoint
@@ -2032,6 +2139,14 @@ assign(paste("lin.model_",region,sep = ""),lin.model)
 assign(paste("segmented.mod_",region,sep = ""),segmented.mod)
 
 }
+
+TableS5 <- regs[,c("Region", "R2_linear", "R2_segmented")]
+TableS5$Region <- regs$Region_figurename
+TableS5$R2_linear <- round(TableS5$R2_linear, 2)
+TableS5$R2_segmented <- round(TableS5$R2_segmented, 2)
+
+setwd('[insert working directory]')
+write.csv(TableS5, "TableS5.csv")
 
 ```
 
@@ -2120,7 +2235,7 @@ nib6$S3_seg_N_surplus_saving_kg_ha <- nib6$seg_N_saving_kg_ha + nib6$seg_yield_g
 
 ```
 
-3.13) Visualising potential NUE increases (Figure S10 in Supplementary Information 12)
+3.13) Visualising potential NUE increases (Figure S11 in Supplementary Information 12)
 
 ```{r}
 
@@ -2188,11 +2303,14 @@ ggplot() +
   scale_color_manual(name='Pathway',
                      values=c('Pathway 1' = 'yellow3', 'Pathway 2' = ' dark blue', 'Pathway 1&2' = 'dark green', 'No pathway' = 'grey')) +
   geom_line(data = get(paste0("prodfunc_", regs[i,"Region"])), aes(x = x, y = fit), colour = 'red', size = 1.5) +
+  geom_vline(xintercept = 50, linetype = "solid", color = "black", size = 0.5) +
+  geom_vline(xintercept = regs[i, "N_rate_breakpoint"], linetype = "dashed", color = "black", size = 0.5) +
   theme_bw() +
+  xlim(c(0,400)) +
   ylim(c(0,10000)) +
   labs(x = "N rate (kg/ha)", y = "Predicted yield (kg/ha)") +
   theme(axis.text=element_text(size=10), axis.title=element_text(size=13)) +
-  theme(legend.position=c(0.92,0.15))
+  theme(legend.position=c(0.899,0.2045))
 )
 }
 
@@ -2218,7 +2336,7 @@ Scen <- c("Scenario_1",
 Scent <- data.frame(Scen)
 Scent$Abb <- c("S1","S2","S3")
 
-# Input price and subsidy assumptions defined in Table S4 Supplementary information 5
+# Input price and subsidy assumptions defined in Table S6 Supplementary information 5
 
 ## Bangladesh
 
@@ -3092,7 +3210,7 @@ export_formattable(Table1,"Table1.png")
 
 ```
 
-3.16) Robustness check for Table 1 (Table S8 in Supplementary Information 11)
+3.16) Robustness check for Table 1 (Table S10 in Supplementary Information 11)
 
 ```{r}
 # PART 1) Calculating potential yiled increase and N saving
@@ -3267,7 +3385,7 @@ Scen <- c("Scenario_1",
 Scent2 <- data.frame(Scen)
 Scent2$Abb <- c("S1","S2","S3")
 
-# Input price and subsidy assumptions defined in Table S4 Supplementary information 5
+# Input price and subsidy assumptions defined in Table S6 Supplementary information 5
 
 ## Bangladesh
 
@@ -4696,7 +4814,7 @@ varImportance_end <- Sys.time()
 print(round(varImportance_end - varImportance_start),0)
 ```
 
-4.11) Visualising predictor importance for random forest models predicing relative NUE for different regions (Figure 3) and different nitrogen application rates (Figure S4 in Supplementary Information 7)
+4.11) Visualising predictor importance for random forest models predicing relative NUE for different regions (Figure 3) and different nitrogen application rates (Figure S5 in Supplementary Information 7)
 
 ```{r}
 
@@ -5029,7 +5147,7 @@ simples1_region <- simples1[,c(
 )]
 
 ## Make table
-FigureS4 <- formattable(simples1_region,
+FigureS5 <- formattable(simples1_region,
             row.names = F,
             col.names = c(
               "Predictor",
@@ -5064,11 +5182,11 @@ export_formattable <- function(f, file, width = 1000, height = 1500,
     }
 
 export_formattable(Figure3,"Figure3.png")
-export_formattable(FigureS4,"FigureS4.png")
+export_formattable(FigureS5,"FigureS5.png")
 
 ```
 
-4.12) Dependence plots for most importance predictors of relative NUE (Figure 4 & Figure S8 in Supplementary Information 8) 
+4.12) Dependence plots for most importance predictors of relative NUE (Figure 4 & Figure S9 in Supplementary Information 8) 
 
 ```{r}
 library(ggplot2)
@@ -5360,7 +5478,7 @@ varImportance_end <- Sys.time()
 print(round(varImportance_end - varImportance_start),0)
 ```
 
-4.15) Checking robustness of Figure 3 results across seasons: visualising Shapley values (Figure S5 in Supplementary Information 7)
+4.15) Checking robustness of Figure 3 results across seasons: visualising Shapley values (Figure S6 in Supplementary Information 7)
 
 ```{r}
 
@@ -5607,7 +5725,7 @@ Category_colour <- formatter("span",
 simples2 <- simples2[,c(1,7,2:6)]
 
 ## Make table
-FigureS5 <- formattable(simples2,
+FigureS6 <- formattable(simples2,
             row.names = F,
             col.names = c(
               "Predictor",
@@ -5645,7 +5763,7 @@ export_formattable <- function(f, file, width = 1000, height = 1500,
               zoom = zoom)
     }
 
-export_formattable(FigureS5,"FigureS5.png")
+export_formattable(FigureS6,"FigureS6.png")
 
 
 ```
@@ -5932,7 +6050,7 @@ print(round(varImportance_end - varImportance_start),0)
 
 ```
 
-4.20) Checking robustness of Figure 3 results across models: visualising predictor importance for random forest models that predict relative NUE as a continuous variable, instead of a cateogircal variable (Figure S6 in Supplementary Information 7)
+4.20) Checking robustness of Figure 3 results across models: visualising predictor importance for random forest models that predict relative NUE as a continuous variable, instead of a cateogircal variable (Figure S7 in Supplementary Information 7)
 
 ```{r}
 
@@ -6214,7 +6332,7 @@ simples3_reordered <- simples3_region[,c(
 )]
 
 ## Make table
-FigureS6 <- formattable(simples3_reordered,
+FigureS7 <- formattable(simples3_reordered,
             row.names = F,
             col.names = c(
               "Predictor",
@@ -6255,11 +6373,11 @@ export_formattable <- function(f, file, width = 1000, height = 1500,
               zoom = zoom)
     }
 
-export_formattable(FigureS6,"FigureS6.png")
+export_formattable(FigureS7,"FigureS7.png")
 
 ```
 
-4.21) Checking robustness of Figure 3 results across models: Visualising predictor imoprtance for random forest models that predict yield for nitrogen rate 0-200 kg/ha (Figure S7 in Supplementary Information 7)
+4.21) Checking robustness of Figure 3 results across models: Visualising predictor imoprtance for random forest models that predict yield for nitrogen rate 0-200 kg/ha (Figure S8 in Supplementary Information 7)
 
 ```{r}
 
@@ -6554,7 +6672,7 @@ simples4_reordered <- simples4_region[,c(
 )]
 
 ## Make table
-FigureS7 <- formattable(simples4_reordered,
+FigureS8 <- formattable(simples4_reordered,
             row.names = F,
             col.names = c(
               "Predictor",
@@ -6595,6 +6713,6 @@ export_formattable <- function(f, file, width = 1000, height = 1500,
               zoom = zoom)
     }
 
-export_formattable(FigureS7,"FigureS7.png")
+export_formattable(FigureS8,"FigureS8.png")
 
 ```
